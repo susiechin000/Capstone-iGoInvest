@@ -1,0 +1,206 @@
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>igoinvest login v1 (cleanup) </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <style>
+
+body, html {
+  height: 100%;
+  margin: 0;
+}
+
+ .bg {
+  /* The image used */
+  background-image: url("https://i.postimg.cc/vBFw98zV/technical-Analysis.jpg");
+
+  /* Full height */
+  height: 100%; 
+
+  /* Center and scale the image nicely */
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+
+    .login-container {
+      position: relative;
+      height: 100%;
+    }
+
+    .login-box {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      padding: 15px;
+      background-color: #fff;
+      box-shadow: 0px 5px 5px #ccc;
+      border-radius: 5px;
+      border-top: 1px solid #e9e9e9;
+    }
+
+    .login-header {
+      text-align: center;
+    }
+
+    .login-header img {
+      width: 75px;
+    }
+
+      .hidden {
+        display: none;
+      }
+
+      label {
+        margin-bottom: 10px;
+        display: block;
+      }
+    </style>
+    <script src="https://cdn.auth0.com/js/auth0-spa-js/1.13/auth0-spa-js.production.js"></script>
+    <script>
+      const configureClient = async () => {
+        auth0 = await createAuth0Client({
+          domain: "dev-kingsley.us.auth0.com",
+          client_id: "nNoCECGaPhKe5hPDAKpIBODelb66iUJE",
+          audience: "https://dev-kingsley.us.auth0.com/api/v2/" // The backend api id
+        });
+      }
+      const login = async () => {
+        await auth0.loginWithRedirect({
+          redirect_uri: "http://localhost:3000"
+        });
+      };
+      const logout = () => {
+        auth0.logout({
+          returnTo: window.location.origin
+        });
+      };
+
+      const updateUI = async () => {
+        const isAuthenticated = await auth0.isAuthenticated();
+
+        document.getElementById("btn-logout").disabled = !isAuthenticated;
+        document.getElementById("btn-login").disabled = isAuthenticated;
+        
+        // NEW - add logic to show/hide gated content after authentication
+        if (isAuthenticated) {
+          document.getElementById("gated-content").classList.remove("hidden");
+
+          document.getElementById(
+            "ipt-access-token"
+          ).innerHTML = await auth0.getTokenSilently();
+
+          document.getElementById("ipt-user-profile").textContent = JSON.stringify(
+            await auth0.getUser()
+          );
+
+        } else {
+          document.getElementById("gated-content").classList.add("hidden");
+        }
+      };
+      
+      window.onload = async () => {
+        await configureClient();
+        updateUI();
+
+        const isAuthenticated = await auth0.isAuthenticated();
+
+        if (isAuthenticated) {
+          // show the gated content
+          return;
+        }
+
+        // NEW - check for the code and state parameters
+        const query = window.location.search;
+        if (query.includes("code=") && query.includes("state=")) {
+
+          // Process the login state
+          await auth0.handleRedirectCallback();
+          
+          updateUI();
+
+          // Use replaceState to redirect the user away and remove the querystring parameters
+          window.history.replaceState({}, document.title, "/");
+        }
+    };
+  </script>
+  </head>
+  <body>
+    <div class="bg"></div>
+    <div class="login-container"></div>
+    <div class="col-xs-12 col-sm-4 col-sm-offset-4 login-box">
+      <div class="login-header">
+        <img src="https://i.postimg.cc/ZRqBsRj9/robot-icons.png"/>
+        <h3>Welcome</h3>
+        <h5>PLEASE LOG IN</h5><hr>
+      </div>
+    <h1><center>iGoInvest</center></h1>
+    
+    <button id="btn-login" class="btn btn-primary btn-block" disabled="true" onclick="login()">Log in</button>
+    <button id="btn-logout" class="btn btn-primary btn-block" disabled="true" onclick="logout()">Log out</button>
+
+    <div class="hidden" id="gated-content">
+      <p>
+        You're seeing this content because you're currently
+        <strong>logged in</strong>.
+      </p>
+      <label>
+        Access token:
+        <pre id="ipt-access-token"></pre>
+      </label>
+      <label>
+        User profile:
+        <pre id="ipt-user-profile"></pre>
+      </label>
+    </div>
+  </body>
+</html>
+
+<!--
+
+  
+  <h2>Fetch Open API</h2>
+  <h3 id="openMessage"></h3>
+  <button onclick="fetchOpenApi()">Open API</button>
+  
+  <h2>Fetch Members Only API</h2>
+  <h3 id="moMessage"></h3>
+  <button onclick="fetchMembersOnlyApi()">Members Only API</button>
+
+  <h2>Fetch Protected API</h2>
+  <h3 id="protectedMessage"></h3>
+  <button onclick="fetchProtectedApi()">Protected API</button>
+  <hr> 
+-- !>
+<!-
+<script>
+  async function fetchOpenApi(){
+    let result = await fetch("/api/open");
+    let json = await result.json();
+    document.getElementById("openMessage").innerHTML = JSON.stringify(json.message);
+  }
+  async function fetchMembersOnlyApi(){
+    const token = await auth0.getTokenSilently();
+    let result = await fetch("/api/members-only", {
+      headers: {
+          Authorization: `Bearer ${token}`
+        }
+    });
+    let json = await result.json();
+    document.getElementById("moMessage").innerHTML = JSON.stringify(json.message);
+  }
+  async function fetchProtectedApi(){
+    const token = await auth0.getTokenSilently();
+    let result = await fetch("/api/protected", {
+      headers: {
+          Authorization: `Bearer ${token}`
+        }
+    });
+    let json = await result.json();
+    document.getElementById("protectedMessage").innerHTML = JSON.stringify(json.message);
+  }
+</script>
+-- !>
+
